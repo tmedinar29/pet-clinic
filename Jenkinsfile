@@ -8,7 +8,7 @@ pipeline {
             }
         }
 
-        stage('Archive Tests Results') {
+        stage('Publish Tests Results') {
             steps {
                echo 'Archive Unit Test Results'
                step([$class: 'JUnitResultArchiver', testResults: 'target/surefire-reports/TEST-*.xml'])
