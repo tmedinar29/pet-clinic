@@ -50,13 +50,6 @@ pipeline {
                 '''
             }
         }
-        stage("End to End Tests") {
-            agent any
-            steps {
-                sh "chmod +x robot.sh"
-                sh "./robot.sh"
-            }
-        }    
 
         stage('Decide Deploy to Test'){
             when {
@@ -85,6 +78,24 @@ pipeline {
                     docker run --name alpine-petclinic-test --rm -d -p 9967:8080 $TAG_NAME
                 '''
             }
+        }
+
+        stage("End to End Tests") {
+            agent any
+            steps {
+                sh "chmod +x robot.sh"
+                sh "./robot.sh"
+            }
         }     
+
+        stage('Decide Deploy to Prod'){
+            when {
+                branch 'master'
+            }
+            agent none
+            steps {
+                input message: 'Deploy to Prod?'
+            }            
+        }    
     }
 }
