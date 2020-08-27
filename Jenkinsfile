@@ -1,10 +1,9 @@
 pipeline {
     agent none
     stages {
-        stage('Build') {
+        stage('Compile and Test') {
             agent any
             steps {
-                echo 'Build'
                 sh "mvn --batch-mode package" 
             }
         }
@@ -39,7 +38,6 @@ pipeline {
                 }
             }
             steps {
-                echo 'Deploy Development'
                 sh '''
                     for runName in `docker ps | grep "alpine-petclinic-dev" | awk '{print $1}'`
                     do
@@ -55,24 +53,8 @@ pipeline {
         stage("End to End Tests") {
             agent any
             steps {
-                echo "shortname.txt"
-                sh "cat /tmp/shortname.txt"
-                echo 'Invoking automated test cases in docker ' 
-                echo 'stop the docker container'
                 sh "chmod +x robot.sh"
-                sh "./robot.sh stop-test dev"
-                echo 'build the docker selenium container'  
-                sh "./robot.sh rebuild-test dev"
-                echo 'start docker container' 
-                sh "./robot.sh start-test dev"
-                sh "set +e"
-                sh "rm -rf report"
-                sh "set -e"
-                sh "mkdir report"
-                echo 'copy test cases report from docker container'
-                sh "docker cp selenium-testsuite:home/robotframework/src/test/selenium-robot/output.xml report"
-                sh "docker cp selenium-testsuite:home/robotframework/src/test/selenium-robot/log.html report"
-                sh "docker cp selenium-testsuite:home/robotframework/src/test/selenium-robot/report.html report"
+                sh "./robot.sh"
             }
         }    
 
@@ -92,7 +74,6 @@ pipeline {
             }
 			agent any
             steps {
-                echo 'Deploy Test'
                 sh '''
                     for runName in `docker ps | grep "alpine-petclinic-test" | awk '{print $1}'`
                     do
