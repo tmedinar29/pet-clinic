@@ -52,7 +52,8 @@ pipeline {
                 '''
             }
         }
-        stage("selenium test") {
+        stage("End to End Tests") {
+            agent any
             steps {
                 echo "shortname.txt"
                 sh "cat /tmp/shortname.txt"
