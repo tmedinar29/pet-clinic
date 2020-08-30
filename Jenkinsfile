@@ -1,14 +1,15 @@
 pipeline {
-    agent any
+    agent none
     stages {
-        stage('Build') {
+        stage('Compile and Test') {
+            agent any
             steps {
-                echo 'Build'
                 sh "mvn --batch-mode package" 
             }
         }
 
         stage('Publish Tests Results') {
+            agent any
             steps {
                echo 'Archive Unit Test Results'
                step([$class: 'JUnitResultArchiver', testResults: 'target/surefire-reports/TEST-*.xml'])
@@ -16,11 +17,12 @@ pipeline {
         }
         
         stage('Create and Publish Docker Image'){
+            agent any
             steps{
                 script {
                     env.GITHUB_USER = sh(script: "sed -n '1p' /tmp/shortname.txt",returnStdout: true).trim()
                     env.SHORT_COMMIT= env.GIT_COMMIT[0..7]
-                    env.TAG_NAME="docker.pkg.github.com/$GITHUB_USER/pet-clinic/petclinic:$SHORT_COMMIT"
+                    env.TAG_NAME="docker.pkg.github.com/$GITHUB_USER/pet-clinic/petclinic:$SHORT_COMMIT".toLowerCase()
                 }
                 sh "docker build -t $TAG_NAME -f Dockerfile.deploy ."
                 sh "sed -n '2p' /tmp/shortname.txt | docker login https://docker.pkg.github.com -u $GITHUB_USER --password-stdin"
@@ -29,19 +31,19 @@ pipeline {
         }
 
         stage('Deploy Development') {
+            agent any
             steps {
-                echo 'Deploy'
                 sh '''
-                    for runName in `docker ps | grep "alpine-petclinic" | awk '{print $1}'`
+                    for runName in `docker ps | grep "alpine-petclinic-dev" | awk '{print $1}'`
                     do
                         if [ "$runName" != "" ]
                         then
                             docker stop $runName
                         fi
                     done
-                    docker run --name alpine-petclinic --rm -d -p 9966:8080 $TAG_NAME
+                    docker run --name alpine-petclinic-dev --rm -d -p 9966:8080 $TAG_NAME
                 '''
             }
-        }           
+        }
     }
 }
