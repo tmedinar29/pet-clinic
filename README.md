@@ -1,4 +1,4 @@
-# Spring PetClinic Application
+# Spring PetClinic Application (Spring Java)
 
 This application is used to illustrate DevOps practices.
 
