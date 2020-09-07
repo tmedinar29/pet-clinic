@@ -45,5 +45,74 @@ pipeline {
                 '''
             }
         }
+        
+        stage('Decide Deploy to Test'){
+            when {
+                branch 'master'
+            }
+            agent none
+            steps {
+                input message: 'Deploy to Test?'
+            }            
+        }
+        
+        stage('Deploy Test'){
+            when {
+                branch 'master'
+            }
+            agent any
+            steps {
+                sh '''
+                    for runName in `docker ps | grep "alpine-petclinic-test" | awk '{print $1}'`
+                    do
+                        if [ "$runName" != "" ]
+                        then
+                            docker stop $runName
+                        fi
+                    done
+                    docker run --name alpine-petclinic-test --rm -d -p 9967:8080 $TAG_NAME
+                '''
+            }
+        }
+
+        stage("End to End Tests") {
+            when {
+                branch 'master'
+            }
+            agent any
+            steps {
+                sh "chmod +x robot.sh"
+                sh "./robot.sh"
+            }
+        }
+
+        stage('Decide Deploy to Prod'){
+            when {
+                branch 'master'
+            }
+            agent none
+            steps {
+                input message: 'Deploy to Prod?'
+            }            
+        }
+        
+        stage('Deploy Prod'){
+            when {
+                branch 'master'
+            }
+            agent any
+            steps {
+                sh '''
+                    for runName in `docker ps | grep "alpine-petclinic-prod" | awk '{print $1}'`
+                    do
+                        if [ "$runName" != "" ]
+                        then
+                            docker stop $runName
+                        fi
+                    done
+                    docker run --name alpine-petclinic-prod --rm -d -p 9968:8080 $TAG_NAME
+                '''
+            }
+        }
     }
 }
