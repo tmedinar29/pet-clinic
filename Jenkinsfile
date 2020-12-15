@@ -109,6 +109,52 @@ stage('Deploy Prod'){
         '''
     }
 }   
+stage('Verify Deployment'){
+    when {
+        branch 'master'
+    }
+    agent none
+    steps {
+        script {
+            env.PRODUCTION_OK = input message: 'Does the deployment is correct?', ok: 'Continue', 
+            parameters: [booleanParam(defaultValue: true, name: 'The application is working as expected')]
+
+            env.DOCKER_REPOSITORY="docker.pkg.github.com/$GITHUB_USER/pet-clinic/petclinic".toLowerCase()
+            env.PRODUCTION_LATEST="${env.DOCKER_REPOSITORY}:production-latest"
+            env.PRODUCTION_PREVIOUSLY="${env.DOCKER_REPOSITORY}:production-previously"
+        }
+    } 
+}
+stage('Rollback'){
+    when {
+        expression { env.PRODUCTION_OK == 'false'}
+    }
+    agent any
+    steps {
+        sh '''
+            for runName in `docker ps | grep "alpine-petclinic-prod" | awk '{print $1}'`
+            do
+                if [ "$runName" != "" ]
+                then
+                    docker stop $runName
+                fi
+            done
+            docker run --name alpine-petclinic-prod --rm -d -p 9968:8080 $PRODUCTION_LATEST
+        '''
+    }
+}
+stage('Tag Production Package'){
+    when {
+        expression { env.PRODUCTION_OK == 'true'}
+    }
+    agent any
+    steps{
+        sh 'docker tag $PRODUCTION_LATEST $PRODUCTION_PREVIOUSLY'
+        sh 'docker tag $TAG_NAME $PRODUCTION_LATEST'
+        sh 'docker push $PRODUCTION_PREVIOUSLY'
+        sh 'docker push $PRODUCTION_LATEST'
+    }
+}
 
 
     }
